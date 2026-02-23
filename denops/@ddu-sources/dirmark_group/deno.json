@@ -9,6 +9,10 @@
   },
   "imports": {
     "@denops/std": "jsr:@denops/std@~8.0.0",
-    "@shougo/ddu-vim": "jsr:@shougo/ddu-vim@~11.0.0"
+    "@shougo/ddu-vim": "jsr:@shougo/ddu-vim@~11.0.0",
+    "@std/path": "jsr:@std/path@~1.1.0",
+    "@kmnk/ddu-kind-dirmark": "../../@ddu-kinds/dirmark/main.ts",
+    "@kmnk/ddu-kind-dirmark/storage": "../../@ddu-kinds/dirmark/storage.ts",
+    "@kmnk/ddu-kind-dirmark_group": "../../@ddu-kinds/dirmark_group/main.ts"
   }
 }

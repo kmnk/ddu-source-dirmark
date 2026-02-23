@@ -32,7 +32,8 @@ export class Kind extends BaseKind<Params> {
      * Placeholder items (empty group) are ignored.
      */
     open: {
-      description: "Open a ddu session listing the marks in the selected group.",
+      description:
+        "Open a ddu session listing the marks in the selected group.",
       callback: async (args) => {
         const item = args.items[0];
         const action = item?.action as ActionData | undefined;
