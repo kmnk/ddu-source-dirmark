@@ -1,0 +1,276 @@
+*ddu-source-dirmark.txt*	ddu.vim source for marked directories
+
+Author:  kmnk
+License: MIT License
+Note:    Assisted by Claude Code (Anthropic)
+
+==============================================================================
+CONTENTS					*ddu-source-dirmark-contents*
+
+Introduction		|ddu-source-dirmark-introduction|
+Install			|ddu-source-dirmark-install|
+Usage			|ddu-source-dirmark-usage|
+Sources			|ddu-source-dirmark-sources|
+  dirmark		|ddu-source-dirmark-source-dirmark|
+  dirmark_group		|ddu-source-dirmark-source-dirmark_group|
+Kinds			|ddu-source-dirmark-kinds|
+  dirmark		|ddu-source-dirmark-kind-dirmark|
+  dirmark_group		|ddu-source-dirmark-kind-dirmark_group|
+Vim API			|ddu-source-dirmark-api|
+Storage			|ddu-source-dirmark-storage|
+
+==============================================================================
+INTRODUCTION				*ddu-source-dirmark-introduction*
+
+ddu-source-dirmark is a ddu.vim plugin for managing bookmarked directories
+(dirmarks). Each mark stores a directory path, an optional human-readable
+name, and belongs to a group.
+
+Marks are organized into named groups. A special group named "default" holds
+ungrouped marks and is used when no group is explicitly specified.
+"default" is a reserved value and cannot be entered as a group name through
+interactive prompts; leave the group field empty to assign to it.
+
+This plugin consists of four components:
+
+  ddu-source-dirmark		Lists marked directories in a group.
+  ddu-source-dirmark_group	Lists all groups that have marks.
+  ddu-kind-dirmark		Actions for directory marks.
+  ddu-kind-dirmark_group	Actions for groups.
+
+When the mark list is empty, a placeholder item is displayed so that the
+"add" action remains accessible from the ddu UI.
+
+==============================================================================
+INSTALL					*ddu-source-dirmark-install*
+
+Requirements:
+  - ddu.vim    https://github.com/Shougo/ddu.vim
+  - denops.vim https://github.com/vim-denops/denops.vim
+
+Install with your plugin manager. Example using lazy.nvim: >lua
+
+  {
+    "kmnk/ddu-source-dirmark",
+    dependencies = { "Shougo/ddu.vim", "vim-denops/denops.vim" },
+  }
+<
+==============================================================================
+USAGE					*ddu-source-dirmark-usage*
+
+List marks in the default group: >vim
+
+  call ddu#start(#{sources: [#{name: 'dirmark'}]})
+<
+List marks in a specific group: >vim
+
+  call ddu#start(#{
+    \ sources: [#{name: 'dirmark', params: #{group: 'work'}}],
+    \ })
+<
+List all groups: >vim
+
+  call ddu#start(#{sources: [#{name: 'dirmark_group'}]})
+<
+Change the data directory: >vim
+
+  call ddu_source_dirmark#set_data_directory_path('~/.local/share/dirmark')
+<
+==============================================================================
+SOURCES					*ddu-source-dirmark-sources*
+
+------------------------------------------------------------------------------
+ddu-source-dirmark			*ddu-source-dirmark-source-dirmark*
+
+Lists directory marks belonging to a group.
+
+When no marks exist in the group, a "(No marks registered)" placeholder item
+is emitted with the kind set to "dirmark". This allows the "add" action to
+remain accessible even from an empty list.
+
+Item word:
+  The mark's name if set, otherwise the directory path.
+  Filtering operates on this field.
+
+Item display:
+  If a name is set: "{name}<Tab>{path}" (tab-separated).
+  If no name:       the directory path only.
+
+Item kind:	dirmark
+
+Parameters~
+
+					*ddu-source-dirmark-param-group*
+group		(string, default: "")
+  The group whose marks are listed.
+  When empty, marks in the "default" group are shown.
+
+					*ddu-source-dirmark-param-dataDir*
+dataDir		(string, default: "")
+  Override the data directory.
+  When empty, the value of |g:ddu_source_dirmark_data_dir| is used.
+  Falls back to ~/.cache/ddu-source-dirmark when neither is set.
+
+					*ddu-source-dirmark-param-highlights*
+highlights.name		(string, default: "Identifier")
+  Highlight group applied to the name column.
+  Set to "" to disable highlighting.
+
+highlights.placeholder	(string, default: "Comment")
+  Highlight group applied to the empty-state placeholder row.
+  Set to "" to disable highlighting.
+
+Example: >vim
+
+  call ddu#start(#{
+    \ sources: [#{
+    \   name: 'dirmark',
+    \   params: #{
+    \     group: 'work',
+    \     highlights: #{name: 'Title'},
+    \   },
+    \ }],
+    \ })
+<
+------------------------------------------------------------------------------
+ddu-source-dirmark_group		*ddu-source-dirmark-source-dirmark_group*
+
+Lists all groups that have at least one mark.
+
+When no marks exist, a "(No marks registered)" placeholder item is displayed.
+Its kind is "dirmark_group" and the "open" action on it is a no-op.
+
+Item word:	Group name.
+Item kind:	dirmark_group
+
+Parameters~
+
+dataDir		(string, default: "")
+  Same as |ddu-source-dirmark-param-dataDir|.
+
+highlights.placeholder	(string, default: "Comment")
+  Highlight group applied to the empty-state placeholder row.
+  Set to "" to disable highlighting.
+
+Example: >vim
+
+  call ddu#start(#{sources: [#{name: 'dirmark_group'}]})
+<
+==============================================================================
+KINDS					*ddu-source-dirmark-kinds*
+
+------------------------------------------------------------------------------
+ddu-kind-dirmark			*ddu-source-dirmark-kind-dirmark*
+
+Handles marked directory items produced by ddu-source-dirmark.
+Placeholder items are silently ignored (or return |ActionFlags.Persist|) in
+all actions except "add", which does not require a real item to be selected.
+
+Actions~
+
+					*ddu-kind-dirmark-action-open*
+open
+  Open the marked directory in a new ddu session using ddu-source-file.
+  Multiple items can be selected; each opens its own session.
+  Placeholder items are skipped.
+
+					*ddu-kind-dirmark-action-cd*
+cd
+  Change the current working directory (|:cd|) to the marked path.
+  Only the first selected item is used.
+  Returns |ActionFlags.Persist| for placeholder items.
+
+					*ddu-kind-dirmark-action-add*
+add
+  Interactively register a new directory mark.
+  Works regardless of whether a real item is selected.
+  Prompts for (in order):
+
+    1. Path: the directory to mark.
+       Defaults to the current working directory. File completion is active.
+    2. Group: the group to assign it to.
+       Leave empty to assign to the "default" group.
+       Entering "default" directly is not allowed.
+    3. Name (optional): a human-readable label for the mark.
+       Leave empty to store the mark without a name.
+
+					*ddu-kind-dirmark-action-delete*
+delete
+  Remove the selected marks from storage.
+  Placeholder items are ignored. If only placeholders are selected, the
+  action returns |ActionFlags.Persist| without modifying storage.
+
+Parameters~
+
+					*ddu-kind-dirmark-param-dataDir*
+dataDir		(string, default: "")
+  Override the data directory.
+  When empty, the value of |g:ddu_source_dirmark_data_dir| is used.
+
+------------------------------------------------------------------------------
+ddu-kind-dirmark_group			*ddu-source-dirmark-kind-dirmark_group*
+
+Handles group items produced by ddu-source-dirmark_group.
+
+Actions~
+
+					*ddu-kind-dirmark_group-action-open*
+open
+  Start a new ddu session listing the marks in the selected group,
+  using ddu-source-dirmark. Only the first selected item is used.
+  Returns |ActionFlags.Persist| for placeholder items (empty group).
+
+Parameters~
+
+dataDir		(string, default: "")
+  When set, this value is forwarded to the child ddu-source-dirmark session
+  as its `dataDir` parameter.
+
+==============================================================================
+VIM API					*ddu-source-dirmark-api*
+
+					*ddu_source_dirmark#set_data_directory_path()*
+ddu_source_dirmark#set_data_directory_path({path})
+  Set the directory where dirmark data is stored.
+  {path} is expanded via |expand()| before being stored.
+  This sets the global variable |g:ddu_source_dirmark_data_dir|.
+
+  Example: >vim
+    call ddu_source_dirmark#set_data_directory_path('~/.local/share/dirmark')
+<
+
+					*g:ddu_source_dirmark_data_dir*
+g:ddu_source_dirmark_data_dir	(string, default: not set)
+  Global variable that overrides the data directory path.
+  Can be set directly or via |ddu_source_dirmark#set_data_directory_path()|.
+  When not set, data is stored in ~/.cache/ddu-source-dirmark/.
+
+==============================================================================
+STORAGE					*ddu-source-dirmark-storage*
+
+Mark data is stored as JSON in the data directory.
+
+Default path: ~/.cache/ddu-source-dirmark/dirmarks.json
+
+File format: >json
+
+  {
+    "marks": [
+      { "group": "default", "path": "/home/user/projects" },
+      { "group": "work",    "path": "/home/user/work/repo", "name": "my-repo" }
+    ]
+  }
+<
+Fields:
+  group  (string, required) The group this mark belongs to.
+  path   (string, required) Absolute path to the marked directory.
+  name   (string, optional) Human-readable label. When set, it is used as the
+                            ddu item word (for filtering) and shown before the
+                            path in the display column.
+
+The "default" group is a reserved name used for ungrouped marks. It is
+assigned automatically when no group name is given and cannot be specified
+directly through the interactive prompt.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
