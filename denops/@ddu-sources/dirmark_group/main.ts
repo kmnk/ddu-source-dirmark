@@ -12,12 +12,12 @@ import type { Item, ItemHighlight } from "@shougo/ddu-vim/types";
 import { BaseSource } from "@shougo/ddu-vim/source";
 import type { Denops } from "@denops/std";
 
-import type { ActionData } from "../../@ddu-kinds/dirmark_group/main.ts";
+import type { ActionData } from "@kmnk/ddu-kind-dirmark_group";
 import {
   getGroups,
   loadData,
   resolveDataDir,
-} from "../../@ddu-kinds/dirmark/storage.ts";
+} from "@kmnk/ddu-kind-dirmark/storage";
 
 /** Source parameters. */
 type Params = {
