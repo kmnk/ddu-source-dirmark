@@ -6,7 +6,7 @@
  * Configurable via `ddu_source_dirmark#set_data_directory_path()`.
  */
 
-import { join } from "jsr:@std/path@^1.1.0/join";
+import { join } from "@std/path/join";
 
 /** The reserved group name assigned when no group is specified. */
 export const DEFAULT_GROUP = "default";
